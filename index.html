@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Turf Pro | Post-Booking Payment Engine</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <style>
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: #f8fafc;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.9);
+        }
+        .slot-selected {
+            background: linear-gradient(135deg, #0d9488, #0f766e) !important;
+            color: white !important;
+            border-color: #0f766e !important;
+            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+        }
+        .slot-selected * { color: white !important; }
+    </style>
+</head>
+<body class="text-slate-800 antialiased pb-28 md:pb-12">
+
+    <!-- TOP APP HEADER -->
+    <header class="bg-gradient-to-r from-emerald-950 via-emerald-800 to-slate-900 text-white shadow-xl sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 py-3.5 flex justify-between items-center gap-3">
+            
+            <div class="flex items-center gap-3">
+                <div class="bg-gradient-to-br from-emerald-400 to-teal-600 text-white p-2.5 rounded-2xl shadow-lg shadow-emerald-500/20">
+                    <i class="fa-solid fa-futbol text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-black tracking-tight flex items-center gap-1">
+                        TURF<span class="text-emerald-400">PRO</span>
+                    </h1>
+                    <p class="text-[10px] text-emerald-200/80 font-semibold tracking-wide uppercase">Striker's Cloud Dashboard</p>
+                </div>
+            </div>
+
+            <!-- Sync Status & Desktop Nav -->
+            <div class="flex items-center gap-3">
+                <div id="syncBadge" class="text-xs font-bold px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-2 transition-all">
+                    <i class="fa-solid fa-cloud-check"></i> <span class="hidden sm:inline">Live Synced</span>
+                </div>
+
+                <!-- Desktop Navigation Buttons -->
+                <nav class="hidden md:flex bg-slate-900/60 p-1.5 rounded-2xl border border-white/10 backdrop-blur-md text-xs font-bold">
+                    <button onclick="switchTab('schedule')" id="tab-schedule-desktop" class="tab-btn px-3.5 py-2 rounded-xl transition bg-emerald-500 text-white shadow">
+                        <i class="fa-solid fa-calendar-days mr-1.5"></i> Schedule
+                    </button>
+                    <button onclick="switchTab('bookings-list')" id="tab-bookings-list-desktop" class="tab-btn px-3.5 py-2 rounded-xl transition text-slate-300 hover:text-white">
+                        <i class="fa-solid fa-list-check mr-1.5"></i> Bookings & Pay
+                    </button>
+                    <button onclick="switchTab('dashboard')" id="tab-dashboard-desktop" class="tab-btn px-3.5 py-2 rounded-xl transition text-slate-300 hover:text-white">
+                        <i class="fa-solid fa-chart-pie mr-1.5"></i> Dashboard
+                    </button>
+                    <button onclick="switchTab('academy')" id="tab-academy-desktop" class="tab-btn px-3.5 py-2 rounded-xl transition text-slate-300 hover:text-white">
+                        <i class="fa-solid fa-graduation-cap mr-1.5"></i> Academy
+                    </button>
+                    <button onclick="switchTab('inventory')" id="tab-inventory-desktop" class="tab-btn px-3.5 py-2 rounded-xl transition text-slate-300 hover:text-white">
+                        <i class="fa-solid fa-boxes-stacked mr-1.5"></i> Drinks
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- MOBILE BOTTOM NAVIGATION BAR -->
+    <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-slate-200 shadow-2xl z-40 px-2 py-2 flex justify-around items-center text-[10px] font-bold">
+        <button onclick="switchTab('schedule')" id="tab-schedule-mobile" class="mobile-nav-btn flex flex-col items-center gap-1 text-emerald-600">
+            <i class="fa-solid fa-calendar-days text-base"></i>
+            <span>Schedule</span>
+        </button>
+        <button onclick="switchTab('bookings-list')" id="tab-bookings-list-mobile" class="mobile-nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-slate-700">
+            <i class="fa-solid fa-list-check text-base"></i>
+            <span>Bookings</span>
+        </button>
+        <button onclick="switchTab('dashboard')" id="tab-dashboard-mobile" class="mobile-nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-slate-700">
+            <i class="fa-solid fa-chart-pie text-base"></i>
+            <span>Reports</span>
+        </button>
+        <button onclick="switchTab('academy')" id="tab-academy-mobile" class="mobile-nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-slate-700">
+            <i class="fa-solid fa-graduation-cap text-base"></i>
+            <span>Academy</span>
+        </button>
+        <button onclick="switchTab('inventory')" id="tab-inventory-mobile" class="mobile-nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-slate-700">
+            <i class="fa-solid fa-boxes-stacked text-base"></i>
+            <span>Drinks</span>
+        </button>
+    </div>
+
+    <!-- MAIN BODY CONTAINER -->
+    <main class="max-w-7xl mx-auto px-4 mt-5">
+
+        <!-- TAB 1: SCHEDULE & RESERVATION (SIMPLIFIED FOR QUICK SLOT BOOKING) -->
+        <div id="sec-schedule" class="tab-content grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <div class="lg:col-span-1 glass-card p-5 rounded-3xl shadow-sm h-fit">
+                <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-200/80">
+                    <h2 class="font-extrabold text-slate-800 flex items-center gap-2 text-sm">
+                        <i class="fa-solid fa-circle-plus text-emerald-500"></i> New Reservation
+                    </h2>
+                    <span id="advanceBadge" class="text-[10px] bg-emerald-100 text-emerald-800 font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">Slot Only</span>
+                </div>
+
+                <form id="bookingForm" class="space-y-3.5">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Customer Name</label>
+                        <input type="text" id="custName" required placeholder="e.g. Afzal Khan" class="w-full px-3.5 py-2 text-xs font-semibold border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50/50">
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Mobile Number</label>
+                        <input type="tel" id="custPhone" required placeholder="e.g. 9811582722" class="w-full px-3.5 py-2 text-xs font-semibold border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50/50">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2.5">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Turf / Box</label>
+                            <select id="turfBox" class="w-full px-3 py-2 text-xs font-semibold border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50/50">
+                                <option value="CRICKET TURF">CRICKET TURF</option>
+                                <option value="FOOTBALL TURF">FOOTBALL TURF</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Booking Date</label>
+                            <input type="date" id="bookingDate" onchange="syncDateToSchedule()" required class="w-full px-2.5 py-2 text-xs font-semibold border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50/50">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Start Time</label>
+                        <input type="time" id="startTime" required class="w-full px-3 py-2 text-xs font-semibold border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50/50" onchange="recalculateLightingFromTime()">
+                    </div>
+
+                    <!-- Split Lighting Hours Setup -->
+                    <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2.5">
+                        <label class="block text-xs font-bold text-slate-700 uppercase flex items-center justify-between">
+                            <span><i class="fa-solid fa-lightbulb text-amber-500 mr-1.5"></i> Lighting & Rates</span>
+                        </label>
+                        
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase">Day Hrs (No Light)</label>
+                                <input type="number" id="dayHours" min="0" step="0.5" value="1" class="w-full px-2.5 py-1.5 text-xs font-bold border rounded-xl bg-white outline-none" oninput="calculateTotal()">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase">Day Rate (₹/Hr)</label>
+                                <input type="number" id="dayRate" min="0" value="1000" class="w-full px-2.5 py-1.5 text-xs font-bold border rounded-xl bg-white outline-none" oninput="calculateTotal()">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase">Night Hrs (Light)</label>
+                                <input type="number" id="nightHours" min="0" step="0.5" value="0" class="w-full px-2.5 py-1.5 text-xs font-bold border rounded-xl bg-white outline-none" oninput="calculateTotal()">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase">Night Rate (₹/Hr)</label>
+                                <input type="number" id="nightRate" min="0" value="1200" class="w-full px-2.5 py-1.5 text-xs font-bold border rounded-xl bg-white outline-none" oninput="calculateTotal()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Advance & Discount Fields -->
+                    <div class="grid grid-cols-2 gap-2.5">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Advance (₹)</label>
+                            <input type="number" id="advancePaid" min="0" value="0" class="w-full px-3 py-2 text-xs font-semibold border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50/50" oninput="calculateTotal()">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Discount (₹)</label>
+                            <input type="number" id="discountAmt" min="0" value="0" class="w-full px-3 py-2 text-xs font-semibold border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50/50" oninput="calculateTotal()">
+                        </div>
+                    </div>
+
+                    <!-- Bill Summary Card -->
+                    <div class="p-4 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white rounded-2xl space-y-1.5 text-xs shadow-lg">
+                        <div class="flex justify-between text-slate-300"><span>Turf Subtotal:</span> <span>₹<span id="summaryTurf">1000</span></span></div>
+                        <div class="text-[10px] text-amber-300 font-medium" id="summaryLightBreakdown">1h Day (₹1000) + 0h Night (₹0)</div>
+                        <div class="flex justify-between text-amber-400 font-semibold"><span>Discount Applied:</span> <span>- ₹<span id="summaryDiscount">0</span></span></div>
+                        <div class="flex justify-between text-emerald-400 font-semibold"><span>Advance Received:</span> <span>- ₹<span id="summaryAdvance">0</span></span></div>
+                        <div class="flex justify-between text-sm font-black border-t border-slate-800 pt-2 text-white">
+                            <span>Balance Due:</span> <span class="text-amber-400 font-extrabold">₹<span id="summaryBalance">1000</span></span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold py-3 rounded-2xl shadow-lg shadow-emerald-600/20 transition">
+                        Confirm Slot Reservation
+                    </button>
+                </form>
+            </div>
+
+            <!-- Schedule Slot Grid -->
+            <div class="lg:col-span-2 space-y-4">
+                <div class="glass-card p-4 rounded-3xl shadow-sm flex flex-wrap justify-between items-center gap-3">
+                    <div>
+                        <h3 id="scheduleHeaderTitle" class="font-black text-sm text-slate-800">CRICKET TURF Availability</h3>
+                        <p class="text-[11px] text-slate-400 font-medium">Click slots to select; Day (6am-6pm) & Night (6pm-6am) auto-split</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="date" id="scheduleViewDate" onchange="renderScheduleGrid()" class="px-3 py-1.5 border rounded-2xl text-xs font-bold outline-none bg-white">
+                        <button onclick="resetSelectedSlots()" class="px-3.5 py-1.5 border border-red-200 text-red-600 hover:bg-red-50 rounded-2xl text-xs font-bold flex items-center gap-1 transition">
+                            <i class="fa-solid fa-rotate-right text-[10px]"></i> Reset
+                        </button>
+                    </div>
+                </div>
+
+                <div id="scheduleSlotsContainer" class="glass-card p-5 rounded-3xl shadow-sm space-y-5"></div>
+            </div>
+        </div>
+
+        <!-- TAB 2: BOOKINGS LIST & PAYMENT COLLECTION CARDS -->
+        <div id="sec-bookings-list" class="tab-content hidden space-y-4">
+            <div class="glass-card p-4 rounded-3xl shadow-sm flex flex-col md:flex-row justify-between items-center gap-3">
+                <div class="flex bg-slate-100 p-1 rounded-2xl text-xs font-bold w-full md:w-auto">
+                    <button onclick="setFilterCategory('upcoming')" id="btn-filter-upcoming" class="flex-1 md:flex-none px-4 py-2 rounded-xl bg-white text-emerald-800 shadow font-black transition">Upcoming</button>
+                    <button onclick="setFilterCategory('done')" id="btn-filter-done" class="flex-1 md:flex-none px-4 py-2 rounded-xl text-slate-500 hover:text-slate-900 transition font-bold">Completed</button>
+                    <button onclick="setFilterCategory('all')" id="btn-filter-all" class="flex-1 md:flex-none px-4 py-2 rounded-xl text-slate-500 hover:text-slate-900 transition font-bold">All</button>
+                </div>
+
+                <div class="relative w-full md:w-72">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-xs"></i>
+                    <input type="text" id="searchInput" onkeyup="renderBookingsTable()" placeholder="Search customer or phone..." class="w-full pl-9 pr-3.5 py-2 border border-slate-200 rounded-2xl text-xs font-semibold outline-none bg-white">
+                </div>
+            </div>
+
+            <div id="bookingsCardsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Dynamic Cards rendered via JS -->
+            </div>
+        </div>
+
+        <!-- TAB 3: FINANCIAL DASHBOARD -->
+        <div id="sec-dashboard" class="tab-content hidden space-y-5">
+            <h2 class="text-sm font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                <i class="fa-solid fa-chart-line text-emerald-600"></i> Financial Reports & Cash Collections
+            </h2>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="glass-card p-4 rounded-3xl shadow-sm border-l-4 border-emerald-500">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Revenue</span>
+                    <h3 id="dashRevenue" class="text-xl font-black text-slate-800 mt-1">₹0.00</h3>
+                </div>
+
+                <div class="glass-card p-4 rounded-3xl shadow-sm border-l-4 border-emerald-600">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Cash Collected</span>
+                    <h3 id="dashCash" class="text-xl font-black text-slate-800 mt-1">₹0.00</h3>
+                </div>
+
+                <div class="glass-card p-4 rounded-3xl shadow-sm border-l-4 border-blue-500">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Online Collected</span>
+                    <h3 id="dashOnline" class="text-xl font-black text-slate-800 mt-1">₹0.00</h3>
+                </div>
+
+                <div class="glass-card p-4 rounded-3xl shadow-sm border-l-4 border-purple-500">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Holding Cash</span>
+                    <h3 id="dashHoldingCash" class="text-xl font-black text-slate-800 mt-1">₹0.00</h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: ACADEMY MANAGER -->
+        <div id="sec-academy" class="tab-content hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-1 glass-card p-5 rounded-3xl shadow-sm h-fit">
+                <h2 class="font-extrabold text-slate-800 pb-3 mb-3 border-b border-slate-200/80 text-sm">Add Academy Student</h2>
+                <form id="academyForm" class="space-y-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Student Name</label>
+                        <input type="text" id="acadName" required placeholder="e.g. Adeel Ahmad" class="w-full px-3.5 py-2 text-xs border rounded-2xl outline-none bg-slate-50/50">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Mobile Contact</label>
+                        <input type="tel" id="acadPhone" required placeholder="e.g. 9876543210" class="w-full px-3.5 py-2 text-xs border rounded-2xl outline-none bg-slate-50/50">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Monthly Fee (₹)</label>
+                        <input type="number" id="acadFee" min="0" required placeholder="2500" class="w-full px-3.5 py-2 text-xs border rounded-2xl outline-none bg-slate-50/50">
+                    </div>
+                    <button type="submit" class="w-full bg-purple-700 hover:bg-purple-600 text-white font-extrabold py-2.5 rounded-2xl shadow">Register Student</button>
+                </form>
+            </div>
+
+            <div class="lg:col-span-2 glass-card p-5 rounded-3xl shadow-sm">
+                <div class="flex justify-between items-center pb-3 mb-3 border-b border-slate-200/80">
+                    <h2 class="font-extrabold text-slate-800 text-sm">Student Ledger</h2>
+                    <input type="text" id="acadSearch" onkeyup="renderAcademyTable()" placeholder="Search student..." class="px-3.5 py-1.5 border rounded-2xl text-xs outline-none w-48 bg-white">
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-600">
+                        <thead class="bg-slate-100 uppercase text-[10px] font-bold">
+                            <tr>
+                                <th class="p-3">Student Name</th>
+                                <th class="p-3">Fee + Drinks</th>
+                                <th class="p-3">Total Paid</th>
+                                <th class="p-3">Balance Due</th>
+                                <th class="p-3 text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="academyTableBody" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 5: DRINKS INVENTORY -->
+        <div id="sec-inventory" class="tab-content hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-1 glass-card p-5 rounded-3xl shadow-sm h-fit">
+                <h2 class="font-extrabold text-slate-800 pb-3 mb-3 border-b border-slate-200/80 text-sm">Add Drink Stock</h2>
+                <form id="inventoryForm" class="space-y-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Item Name</label>
+                        <input type="text" id="invItemName" required placeholder="e.g. Gatorade 500ml" class="w-full px-3.5 py-2 text-xs border rounded-2xl outline-none bg-slate-50/50">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Price (₹)</label>
+                            <input type="number" id="invItemPrice" min="0" required placeholder="60" class="w-full px-3.5 py-2 text-xs border rounded-2xl outline-none bg-slate-50/50">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Stock Qty</label>
+                            <input type="number" id="invItemStock" min="0" required placeholder="24" class="w-full px-3.5 py-2 text-xs border rounded-2xl outline-none bg-slate-50/50">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-slate-900 text-white font-extrabold py-2.5 rounded-2xl shadow">+ Add Stock</button>
+                </form>
+            </div>
+
+            <div class="lg:col-span-2 glass-card p-5 rounded-3xl shadow-sm">
+                <h2 class="font-extrabold text-slate-800 pb-3 mb-3 border-b border-slate-200/80 text-sm">Stock Inventory</h2>
+                <table class="w-full text-left text-xs text-slate-600">
+                    <thead class="bg-slate-100 uppercase text-[10px] font-bold">
+                        <tr>
+                            <th class="p-3">Drink Item</th>
+                            <th class="p-3">Price</th>
+                            <th class="p-3">In Stock</th>
+                            <th class="p-3">Adjust</th>
+                            <th class="p-3 text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryTableBody" class="divide-y divide-slate-100"></tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- COLLECT PAYMENT MODAL WITH DRINKS INCLUDED HERE AT THE LAST -->
+    <div id="paymentModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white max-w-md w-full rounded-3xl shadow-2xl overflow-hidden border border-slate-200">
+            <div class="bg-slate-50 px-5 py-3.5 border-b flex justify-between items-center">
+                <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-wallet text-emerald-600"></i> Payment & Beverage Settlement
+                </h3>
+                <button onclick="closePaymentModal()" class="text-slate-400 hover:text-slate-700 font-bold text-xl">&times;</button>
+            </div>
+
+            <div class="p-5 text-xs text-slate-700 space-y-4">
+                
+                <!-- Live Payment Breakdown Box -->
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-1.5 font-semibold">
+                    <div class="flex justify-between text-slate-500 text-[11px]"><span id="payModalLightingSummary">Day: 1h @ ₹1000 | Night: 0h @ ₹1200</span></div>
+                    <div class="flex justify-between border-t pt-1.5 font-bold"><span>Turf Subtotal</span> <span id="payModalTurfSubtotal">₹1,000.00</span></div>
+                    <div class="flex justify-between text-blue-600 font-bold"><span>Drinks Added</span> <span id="payModalDrinksSubtotal">₹0.00</span></div>
+                    <div class="flex justify-between text-amber-600 font-bold"><span>Discount Applied</span> <span id="payModalDiscount">-₹0.00</span></div>
+                    <div class="flex justify-between font-black text-slate-900 text-sm border-t pt-1"><span>Grand Total</span> <span id="payModalTotal">₹1,000.00</span></div>
+                    <div class="flex justify-between text-emerald-600 font-bold"><span>Total Paid So Far</span> <span id="payModalPaid">₹0.00</span></div>
+                    <div class="flex justify-between text-red-500 font-black border-t pt-1.5 text-sm"><span>Remaining Due</span> <span id="payModalRemaining">₹1,000.00</span></div>
+                </div>
+
+                <!-- ADD BEVERAGES SECTION AT PAYMENT TIME -->
+                <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                    <label class="block text-xs font-extrabold text-slate-700 uppercase flex items-center justify-between">
+                        <span><i class="fa-solid fa-bottle-water text-blue-500 mr-1.5"></i> Add Refreshments / Drinks</span>
+                    </label>
+                    
+                    <div class="grid grid-cols-3 gap-1.5">
+                        <select id="payModalDrinkSelect" class="col-span-2 text-xs px-2.5 py-2 border rounded-xl bg-white outline-none font-semibold">
+                            <option value="">Select Beverage...</option>
+                        </select>
+                        <input type="number" id="payModalDrinkQty" placeholder="Qty" min="1" value="1" class="text-xs px-2.5 py-2 border rounded-xl bg-white outline-none font-bold">
+                    </div>
+                    <button type="button" onclick="addDrinkInPaymentModal()" class="w-full py-1.5 text-xs bg-slate-200 hover:bg-slate-300 rounded-xl text-slate-800 font-bold transition">
+                        + Add To Bill & Deduct Stock
+                    </button>
+
+                    <ul id="payModalDrinkList" class="space-y-1"></ul>
+                </div>
+
+                <!-- Mode Selection -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">PAYMENT MODE *</label>
+                    <select id="paymentModeSelect" onchange="togglePaymentModeInputs()" class="w-full px-3.5 py-2.5 border rounded-2xl outline-none font-bold bg-white focus:ring-2 focus:ring-emerald-500">
+                        <option value="">Select Payment Mode</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Online">Online</option>
+                        <option value="Cash + Online">Cash + Online</option>
+                        <option value="Cash + Advance">Cash + Advance</option>
+                        <option value="Online + Advance">Online + Advance</option>
+                        <option value="Cash + Online + Advance">Cash + Online + Advance</option>
+                    </select>
+                </div>
+
+                <div id="dynamicAmountInputs" class="space-y-2 hidden bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                    <div id="boxCashInput" class="hidden">
+                        <label class="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">Cash Amount Received (₹)</label>
+                        <input type="number" id="payInputCash" value="0" min="0" class="w-full px-3 py-1.5 border rounded-xl outline-none font-bold bg-white">
+                    </div>
+                    <div id="boxOnlineInput" class="hidden">
+                        <label class="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">Online Amount Received (₹)</label>
+                        <input type="number" id="payInputOnline" value="0" min="0" class="w-full px-3 py-1.5 border rounded-xl outline-none font-bold bg-white">
+                    </div>
+                    <div id="boxAdvanceInput" class="hidden">
+                        <label class="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">Advance Amount Received (₹)</label>
+                        <input type="number" id="payInputAdvance" value="0" min="0" class="w-full px-3 py-1.5 border rounded-xl outline-none font-bold bg-white">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">NOTES (OPTIONAL)</label>
+                    <textarea id="payInputNotes" placeholder="Any additional notes..." class="w-full px-3.5 py-2 border rounded-2xl text-xs outline-none h-16"></textarea>
+                </div>
+
+                <button onclick="submitPayment()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 rounded-2xl shadow-lg transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-circle-check"></i> Save Payment Record
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONFIRMATION POPUP MODAL -->
+    <div id="bookingModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white max-w-md w-full rounded-3xl shadow-2xl overflow-hidden border border-slate-200">
+            <div class="bg-emerald-50 px-5 py-3.5 border-b border-emerald-100 flex justify-between items-center">
+                <h3 class="font-black text-emerald-950 text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-circle-check text-emerald-600"></i> Booking Confirmed
+                </h3>
+                <button onclick="closeModal()" class="text-slate-400 font-bold text-lg">&times;</button>
+            </div>
+
+            <div class="p-5 text-xs text-slate-700 space-y-3">
+                <div id="formattedMsgBox" class="p-4 bg-slate-50 rounded-2xl border border-slate-200 font-mono leading-relaxed whitespace-pre-wrap"></div>
+
+                <div class="grid grid-cols-2 gap-2.5 pt-2">
+                    <button onclick="copyModalMsg()" class="bg-slate-800 text-white font-extrabold py-2.5 rounded-2xl flex items-center justify-center gap-2 transition">
+                        <i class="fa-regular fa-copy"></i> Copy Message
+                    </button>
+                    <button onclick="shareWhatsApp()" class="bg-emerald-500 text-white font-extrabold py-2.5 rounded-2xl flex items-center justify-center gap-2 transition">
+                        <i class="fa-brands fa-whatsapp text-lg"></i> WhatsApp
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT LOGIC -->
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBkTAxzxDFoAYGt4U43ynolVZT9T1YdLb4",
+            authDomain: "turfmanager-d300a.firebaseapp.com",
+            databaseURL: "https://turfmanager-d300a-default-rtdb.firebaseio.com",
+            projectId: "turfmanager-d300a",
+            storageBucket: "turfmanager-d300a.firebasestorage.app",
+            messagingSenderId: "865676480138",
+            appId: "1:865676480138:web:3dfadb12122993ad1f2773",
+            measurementId: "G-J7X1CDZJ0T"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let bookings = [];
+        let inventory = [];
+        let academyStudents = [];
+        let selectedHourSlots = [];
+        let currentFilterCategory = 'upcoming';
+        let activePaymentBookingId = null;
+        let lastCreatedBooking = null;
+
+        const todayFormatted = new Date().toISOString().split('T')[0];
+        document.getElementById('bookingDate').value = todayFormatted;
+        document.getElementById('scheduleViewDate').value = todayFormatted;
+
+        function syncDateToSchedule() {
+            const d = document.getElementById('bookingDate').value;
+            document.getElementById('scheduleViewDate').value = d;
+            resetSelectedSlots();
+            renderScheduleGrid();
+        }
+
+        function isBookingPast(b) {
+            const now = new Date();
+            const totalHours = (parseFloat(b.dayHours)||0) + (parseFloat(b.nightHours)||0) || parseFloat(b.hours) || 1;
+            const bEndDateTime = new Date(`${b.date}T${b.startTime}`);
+            bEndDateTime.setHours(bEndDateTime.getHours() + totalHours);
+            return bEndDateTime < now;
+        }
+
+        // Realtime Firebase Listeners
+        db.ref('bookings').on('value', snap => {
+            bookings = snap.val() ? Object.values(snap.val()) : [];
+            renderBookingsTable();
+            renderScheduleGrid();
+            updateFinancialDashboard();
+        });
+
+        db.ref('inventory').on('value', snap => {
+            inventory = snap.val() ? Object.values(snap.val()) : [];
+            renderInventoryTable();
+            populatePaymentDrinkSelect();
+        });
+
+        db.ref('academy').on('value', snap => {
+            academyStudents = snap.val() ? Object.values(snap.val()) : [];
+            renderAcademyTable();
+            updateFinancialDashboard();
+        });
+
+        function saveBookingsToCloud() { db.ref('bookings').set(bookings); }
+        function saveInventoryToCloud() { db.ref('inventory').set(inventory); }
+        function saveAcademyToCloud() { db.ref('academy').set(academyStudents); }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            
+            ['schedule', 'bookings-list', 'dashboard', 'academy', 'inventory'].forEach(t => {
+                const btnDesk = document.getElementById(`tab-${t}-desktop`);
+                const btnMob = document.getElementById(`tab-${t}-mobile`);
+                if (btnDesk) {
+                    btnDesk.className = t === tabName ? "tab-btn px-3.5 py-2 rounded-xl transition bg-emerald-500 text-white shadow font-extrabold" : "tab-btn px-3.5 py-2 rounded-xl transition text-slate-300 hover:text-white font-bold";
+                }
+                if (btnMob) {
+                    btnMob.className = t === tabName ? "mobile-nav-btn flex flex-col items-center gap-1 text-emerald-600 font-extrabold" : "mobile-nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-slate-700 font-bold";
+                }
+            });
+
+            document.getElementById(`sec-${tabName}`).classList.remove('hidden');
+
+            if (tabName === 'schedule') renderScheduleGrid();
+            if (tabName === 'dashboard') updateFinancialDashboard();
+            if (tabName === 'bookings-list') renderBookingsTable();
+        }
+
+        function updateFinancialDashboard() {
+            let totalRevenue = 0;
+            let totalCash = 0;
+            let totalOnline = 0;
+
+            bookings.forEach(b => {
+                totalCash += parseFloat(b.cashPaid || 0) + parseFloat(b.advancePaid || 0);
+                totalOnline += parseFloat(b.onlinePaid || 0);
+                totalRevenue += parseFloat(b.grandTotal || 0);
+            });
+
+            academyStudents.forEach(s => {
+                totalCash += parseFloat(s.paidCash || s.paid || 0);
+                totalOnline += parseFloat(s.paidOnline || 0);
+            });
+
+            document.getElementById('dashRevenue').innerText = `₹${totalRevenue.toLocaleString('en-IN')}.00`;
+            document.getElementById('dashCash').innerText = `₹${totalCash.toLocaleString('en-IN')}.00`;
+            document.getElementById('dashOnline').innerText = `₹${totalOnline.toLocaleString('en-IN')}.00`;
+            document.getElementById('dashHoldingCash').innerText = `₹${totalCash.toLocaleString('en-IN')}.00`;
+
+            const badge = document.getElementById('syncBadge');
+            badge.className = `text-xs font-bold px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-2`;
+            badge.innerHTML = `<i class="fa-solid fa-cloud-check"></i> <span class="hidden sm:inline">Live Synced</span>`;
+        }
+
+        function parseTimeToFloat(timeStr) {
+            if (!timeStr) return 0;
+            const [h, m] = timeStr.split(':').map(Number);
+            return h + (m / 60);
+        }
+
+        function formatHourLabel(h) {
+            const period = h >= 12 ? 'PM' : 'AM';
+            const rawH = Math.floor(h);
+            const displayH = rawH % 12 === 0 ? 12 : rawH % 12;
+            const mins = Math.round((h - rawH) * 60);
+            const minStr = mins < 10 ? '0' + mins : mins;
+            return `${displayH < 10 ? '0'+displayH : displayH}.${minStr} ${period}`;
+        }
+
+        function toggleSlotSelect(hour) {
+            const idx = selectedHourSlots.indexOf(hour);
+            if (idx > -1) {
+                selectedHourSlots.splice(idx, 1);
+            } else {
+                selectedHourSlots.push(hour);
+            }
+            selectedHourSlots.sort((a, b) => a - b);
+
+            if (selectedHourSlots.length > 0) {
+                const earliestHour = selectedHourSlots[0];
+                const timeString = `${earliestHour < 10 ? '0' + earliestHour : earliestHour}:00`;
+                document.getElementById('startTime').value = timeString;
+
+                let dayCount = 0;
+                let nightCount = 0;
+
+                selectedHourSlots.forEach(h => {
+                    if (h >= 6 && h < 18) {
+                        dayCount++;
+                    } else {
+                        nightCount++;
+                    }
+                });
+
+                document.getElementById('dayHours').value = dayCount;
+                document.getElementById('nightHours').value = nightCount;
+            } else {
+                document.getElementById('dayHours').value = 1;
+                document.getElementById('nightHours').value = 0;
+            }
+
+            calculateTotal();
+            renderScheduleGrid();
+        }
+
+        function recalculateLightingFromTime() {
+            const startTimeStr = document.getElementById('startTime').value;
+            if (!startTimeStr) return;
+            const startH = parseTimeToFloat(startTimeStr);
+            const totalH = (parseFloat(document.getElementById('dayHours').value) || 0) + (parseFloat(document.getElementById('nightHours').value) || 0) || 1;
+
+            let dCount = 0;
+            let nCount = 0;
+
+            for(let i = 0; i < totalH; i++) {
+                const currentH = (startH + i) % 24;
+                if (currentH >= 6 && currentH < 18) {
+                    dCount++;
+                } else {
+                    nCount++;
+                }
+            }
+
+            document.getElementById('dayHours').value = dCount;
+            document.getElementById('nightHours').value = nCount;
+            calculateTotal();
+        }
+
+        function resetSelectedSlots() {
+            selectedHourSlots = [];
+            document.getElementById('dayHours').value = 1;
+            document.getElementById('nightHours').value = 0;
+            calculateTotal();
+            renderScheduleGrid();
+        }
+
+        function renderScheduleGrid() {
+            const container = document.getElementById('scheduleSlotsContainer');
+            const targetDate = document.getElementById('scheduleViewDate').value;
+            const formattedDateStr = new Date(targetDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+            
+            document.getElementById('scheduleHeaderTitle').innerText = `CRICKET TURF Availability — ${formattedDateStr}`;
+            document.getElementById('bookingDate').value = targetDate;
+            container.innerHTML = '';
+
+            const periods = [
+                { name: "Early Morning (Midnight – 6am) 💡 Night Rate", start: 0, end: 6, icon: "🌙" },
+                { name: "Morning (6am – 12pm) ☀️ Day Rate", start: 6, end: 12, icon: "🌅" },
+                { name: "Afternoon (12pm – 6pm) ☀️ Day Rate", start: 12, end: 18, icon: "☀️" },
+                { name: "Evening (6pm – Midnight) 💡 Night Rate", start: 18, end: 24, icon: "🌆" }
+            ];
+
+            periods.forEach(p => {
+                let slotHTML = `<div class="font-black text-xs text-slate-700 flex items-center gap-1.5 tracking-wide">${p.icon} ${p.name}</div><div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 mt-2">`;
+                
+                for (let h = p.start; h < p.end; h++) {
+                    const sStart = h;
+                    const sEnd = h + 1;
+                    const isSelected = selectedHourSlots.includes(h);
+
+                    const bMatch = bookings.find(b => {
+                        if (b.date !== targetDate) return false;
+                        const st = parseTimeToFloat(b.startTime);
+                        const bTotalHrs = (parseFloat(b.dayHours)||0) + (parseFloat(b.nightHours)||0) || parseFloat(b.hours) || 1;
+                        const et = st + bTotalHrs;
+                        return st < sEnd && et > sStart;
+                    });
+
+                    const rateTag = (h >= 6 && h < 18) ? "Day (₹1,000)" : "Night (₹1,200)";
+
+                    if (bMatch) {
+                        slotHTML += `
+                            <div class="p-2.5 bg-red-50 border border-red-200 rounded-2xl text-xs cursor-not-allowed opacity-80">
+                                <div class="font-extrabold text-red-800">${formatHourLabel(sStart)} - ${formatHourLabel(sEnd)}</div>
+                                <div class="text-[10px] text-red-600 font-black truncate mt-1"><i class="fa-solid fa-user-lock"></i> ${bMatch.name}</div>
+                                <div class="text-[9px] text-red-500 font-extrabold uppercase mt-0.5">Booked</div>
+                            </div>
+                        `;
+                    } else if (isSelected) {
+                        slotHTML += `
+                            <div onclick="toggleSlotSelect(${h})" class="p-2.5 slot-selected border rounded-2xl text-xs cursor-pointer shadow-md transition transform scale-102">
+                                <div class="font-extrabold">${formatHourLabel(sStart)} - ${formatHourLabel(sEnd)}</div>
+                                <div class="text-[10px] font-black mt-1"><i class="fa-solid fa-circle-check"></i> Selected</div>
+                                <div class="text-[9px] font-bold uppercase mt-0.5">${rateTag}</div>
+                            </div>
+                        `;
+                    } else {
+                        slotHTML += `
+                            <div onclick="toggleSlotSelect(${h})" class="p-2.5 bg-emerald-50/80 border border-emerald-200/90 hover:border-emerald-500 rounded-2xl text-xs cursor-pointer transition">
+                                <div class="font-extrabold text-emerald-950">${formatHourLabel(sStart)} - ${formatHourLabel(sEnd)}</div>
+                                <div class="text-[10px] text-emerald-600 font-extrabold mt-1"><i class="fa-regular fa-circle"></i> Available</div>
+                                <div class="text-[9px] text-emerald-500 font-extrabold uppercase mt-0.5">${rateTag}</div>
+                            </div>
+                        `;
+                    }
+                }
+                slotHTML += `</div>`;
+                container.innerHTML += slotHTML;
+            });
+        }
+
+        // --- RESERVATION CALCULATION (WITHOUT DRINKS UPFRONT) ---
+        function calculateTotal() {
+            const dHours = parseFloat(document.getElementById('dayHours').value) || 0;
+            const dRate = parseFloat(document.getElementById('dayRate').value) || 0;
+            const nHours = parseFloat(document.getElementById('nightHours').value) || 0;
+            const nRate = parseFloat(document.getElementById('nightRate').value) || 0;
+            const advance = parseFloat(document.getElementById('advancePaid').value) || 0;
+            const discount = parseFloat(document.getElementById('discountAmt').value) || 0;
+
+            const dayTotal = dHours * dRate;
+            const nightTotal = nHours * nRate;
+            const turfTotal = dayTotal + nightTotal;
+
+            const grandTotal = Math.max(0, turfTotal - discount);
+            const balance = Math.max(0, grandTotal - advance);
+
+            document.getElementById('summaryTurf').innerText = turfTotal;
+            document.getElementById('summaryLightBreakdown').innerText = `${dHours}h Day (₹${dayTotal}) + ${nHours}h Night (₹${nightTotal})`;
+            document.getElementById('summaryDiscount').innerText = discount;
+            document.getElementById('summaryAdvance').innerText = advance;
+            document.getElementById('summaryBalance').innerText = balance;
+        }
+
+        document.getElementById('bookingForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('custName').value.trim();
+            const phone = document.getElementById('custPhone').value.trim();
+            const box = document.getElementById('turfBox').value;
+            const date = document.getElementById('bookingDate').value;
+            const startTime = document.getElementById('startTime').value;
+
+            const dayHours = parseFloat(document.getElementById('dayHours').value) || 0;
+            const dayRate = parseFloat(document.getElementById('dayRate').value) || 0;
+            const nightHours = parseFloat(document.getElementById('nightHours').value) || 0;
+            const nightRate = parseFloat(document.getElementById('nightRate').value) || 0;
+            const advancePaid = parseFloat(document.getElementById('advancePaid').value) || 0;
+            const discountAmt = parseFloat(document.getElementById('discountAmt').value) || 0;
+
+            const totalHours = dayHours + nightHours;
+            if (totalHours <= 0) return alert('Please enter duration hours.');
+
+            const turfTotal = (dayHours * dayRate) + (nightHours * nightRate);
+            const grandTotal = Math.max(0, turfTotal - discountAmt);
+            const balanceDue = Math.max(0, grandTotal - advancePaid);
+
+            lastCreatedBooking = {
+                id: Date.now(), name, phone, box, date, startTime, hours: totalHours,
+                dayHours, dayRate, nightHours, nightRate, discountAmt,
+                cashPaid: 0, onlinePaid: 0, advancePaid: advancePaid, turfTotal, drinks: [],
+                drinksTotal: 0, grandTotal, advance: advancePaid, balanceDue,
+                status: balanceDue <= 0 ? 'Fully Paid' : 'Unpaid', linkedPaymentsCount: advancePaid > 0 ? 1 : 0
+            };
+
+            bookings.unshift(lastCreatedBooking);
+            saveBookingsToCloud();
+
+            showModal(lastCreatedBooking);
+
+            this.reset();
+            document.getElementById('bookingDate').value = todayFormatted;
+            document.getElementById('dayHours').value = 1;
+            document.getElementById('dayRate').value = 1000;
+            document.getElementById('nightHours').value = 0;
+            document.getElementById('nightRate').value = 1200;
+            document.getElementById('discountAmt').value = 0;
+            resetSelectedSlots();
+            calculateTotal();
+        });
+
+        function showModal(b) {
+            const formattedDate = new Date(b.date).toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
+            const startH = parseTimeToFloat(b.startTime);
+            const totalH = (parseFloat(b.dayHours)||0) + (parseFloat(b.nightHours)||0) || parseFloat(b.hours) || 1;
+            const endH = startH + totalH;
+            const timeRange = `${formatHourLabel(startH)} – ${formatHourLabel(endH)}`;
+
+            const msg = `🏏 StrikersTurf – Slot Booked! 🏏\n----------------------------------\n👤 Name: ${b.name}\n📅 Date: ${formattedDate}\n⏰ Time: ${timeRange}\n⏱️ Duration: ${totalH} Hours\n💡 Light Split: ${b.dayHours||0}h Day + ${b.nightHours||0}h Night\n🟩 Box: ${b.box}\n----------------------------------\n💳 Total Amount: ₹${b.grandTotal.toLocaleString('en-IN')}.00\n🎟️ Discount Applied: ₹${(b.discountAmt || 0).toLocaleString('en-IN')}.00\n✅ Advance Paid: ₹${(b.advancePaid || 0).toLocaleString('en-IN')}.00\n⏳ Remaining Due: ₹${b.balanceDue.toLocaleString('en-IN')}.00\n----------------------------------\n📞 Ground contact: 918115827220. We wish you a great game! 🏏🔥`;
+
+            document.getElementById('formattedMsgBox').innerText = msg;
+            document.getElementById('bookingModal').classList.remove('hidden');
+        }
+
+        function closeModal() { document.getElementById('bookingModal').classList.add('hidden'); }
+        function copyModalMsg() {
+            navigator.clipboard.writeText(document.getElementById('formattedMsgBox').innerText);
+            alert('Copied!');
+        }
+        function shareWhatsApp() {
+            if(!lastCreatedBooking) return;
+            const text = encodeURIComponent(document.getElementById('formattedMsgBox').innerText);
+            window.open(`https://wa.me/91${lastCreatedBooking.phone}?text=${text}`, '_blank');
+        }
+
+        // --- PAYMENT COLLECTION & DRINKS INGESTION AT PAYMENT TIME ---
+        function populatePaymentDrinkSelect() {
+            const select = document.getElementById('payModalDrinkSelect');
+            if(!select) return;
+            select.innerHTML = '<option value="">Select Beverage...</option>';
+            inventory.forEach(item => {
+                const disabled = item.stock <= 0 ? 'disabled' : '';
+                select.innerHTML += `<option value="${item.id}" ${disabled}>${item.name} - ₹${item.price} (${item.stock} left)</option>`;
+            });
+        }
+
+        function openPaymentModal(id) {
+            activePaymentBookingId = id;
+            const b = bookings.find(x => x.id === id);
+            if (!b) return;
+
+            document.getElementById('payModalLightingSummary').innerText = `Day: ${b.dayHours||0}h @ ₹${b.dayRate||1000} | Night: ${b.nightHours||0}h @ ₹${b.nightRate||1200}`;
+            document.getElementById('payModalTurfSubtotal').innerText = `₹${b.turfTotal.toLocaleString('en-IN')}.00`;
+            document.getElementById('payModalDrinksSubtotal').innerText = `₹${(b.drinksTotal || 0).toLocaleString('en-IN')}.00`;
+            document.getElementById('payModalDiscount').innerText = `-₹${(b.discountAmt || 0).toLocaleString('en-IN')}.00`;
+            document.getElementById('payModalTotal').innerText = `₹${b.grandTotal.toLocaleString('en-IN')}.00`;
+            
+            const totalPaid = (b.cashPaid || 0) + (b.onlinePaid || 0) + (b.advancePaid || 0);
+            document.getElementById('payModalPaid').innerText = `₹${totalPaid.toLocaleString('en-IN')}.00`;
+            document.getElementById('payModalRemaining').innerText = `₹${b.balanceDue.toLocaleString('en-IN')}.00`;
+
+            renderPaymentModalDrinkList(b);
+            populatePaymentDrinkSelect();
+
+            document.getElementById('paymentModeSelect').value = '';
+            togglePaymentModeInputs();
+
+            document.getElementById('paymentModal').classList.remove('hidden');
+        }
+
+        function renderPaymentModalDrinkList(b) {
+            const list = document.getElementById('payModalDrinkList');
+            if (!b.drinks || b.drinks.length === 0) {
+                list.innerHTML = `<li class="text-[10px] text-slate-400 font-semibold italic">No drinks added yet.</li>`;
+                return;
+            }
+            list.innerHTML = b.drinks.map(d => `
+                <li class="flex justify-between bg-white px-2.5 py-1 rounded-xl border border-slate-200 text-xs font-semibold">
+                    <span>${d.qty}x ${d.name}</span>
+                    <span class="font-bold text-slate-700">₹${d.total}</span>
+                </li>
+            `).join('');
+        }
+
+        function addDrinkInPaymentModal() {
+            if (!activePaymentBookingId) return;
+
+            const drinkId = parseInt(document.getElementById('payModalDrinkSelect').value);
+            const qty = parseInt(document.getElementById('payModalDrinkQty').value) || 1;
+            const item = inventory.find(i => i.id === drinkId);
+            if (!item || qty > item.stock) return alert('Select beverage / Insufficient stock');
+
+            // Deduct stock from inventory
+            item.stock -= qty;
+            saveInventoryToCloud();
+
+            bookings = bookings.map(b => {
+                if (b.id === activePaymentBookingId) {
+                    if (!b.drinks) b.drinks = [];
+                    const existing = b.drinks.find(d => d.drinkId === drinkId);
+                    if (existing) {
+                        existing.qty += qty;
+                        existing.total = existing.qty * item.price;
+                    } else {
+                        b.drinks.push({ drinkId: item.id, name: item.name, price: item.price, qty, total: qty * item.price });
+                    }
+
+                    b.drinksTotal = b.drinks.reduce((sum, d) => sum + d.total, 0);
+                    b.grandTotal = Math.max(0, (b.turfTotal + b.drinksTotal) - (b.discountAmt || 0));
+                    
+                    const totalPaid = (b.cashPaid || 0) + (b.onlinePaid || 0) + (b.advancePaid || 0);
+                    b.balanceDue = Math.max(0, b.grandTotal - totalPaid);
+                    b.status = b.balanceDue <= 0 ? 'Fully Paid' : 'Unpaid';
+                }
+                return b;
+            });
+
+            saveBookingsToCloud();
+            openPaymentModal(activePaymentBookingId); // Refresh modal view
+        }
+
+        function closePaymentModal() {
+            document.getElementById('paymentModal').classList.add('hidden');
+            activePaymentBookingId = null;
+        }
+
+        function togglePaymentModeInputs() {
+            const mode = document.getElementById('paymentModeSelect').value;
+            const container = document.getElementById('dynamicAmountInputs');
+            const boxCash = document.getElementById('boxCashInput');
+            const boxOnline = document.getElementById('boxOnlineInput');
+            const boxAdvance = document.getElementById('boxAdvanceInput');
+
+            boxCash.classList.add('hidden');
+            boxOnline.classList.add('hidden');
+            boxAdvance.classList.add('hidden');
+
+            if (!mode) {
+                container.classList.add('hidden');
+                return;
+            }
+
+            container.classList.remove('hidden');
+
+            if (mode.includes('Cash')) boxCash.classList.remove('hidden');
+            if (mode.includes('Online')) boxOnline.classList.remove('hidden');
+            if (mode.includes('Advance')) boxAdvance.classList.remove('hidden');
+        }
+
+        function submitPayment() {
+            if (!activePaymentBookingId) return;
+
+            const mode = document.getElementById('paymentModeSelect').value;
+            if (!mode) return alert('Please select a payment mode.');
+
+            const cashAmt = mode.includes('Cash') ? (parseFloat(document.getElementById('payInputCash').value) || 0) : 0;
+            const onlineAmt = mode.includes('Online') ? (parseFloat(document.getElementById('payInputOnline').value) || 0) : 0;
+            const advanceAmt = mode.includes('Advance') ? (parseFloat(document.getElementById('payInputAdvance').value) || 0) : 0;
+
+            const totalEntered = cashAmt + onlineAmt + advanceAmt;
+            if (totalEntered <= 0) return alert('Please enter an amount greater than 0.');
+
+            bookings = bookings.map(b => {
+                if (b.id === activePaymentBookingId) {
+                    b.cashPaid = (b.cashPaid || 0) + cashAmt;
+                    b.onlinePaid = (b.onlinePaid || 0) + onlineAmt;
+                    b.advancePaid = (b.advancePaid || 0) + advanceAmt;
+
+                    const currentPaidTotal = b.cashPaid + b.onlinePaid + b.advancePaid;
+                    b.balanceDue = Math.max(0, b.grandTotal - currentPaidTotal);
+                    b.status = b.balanceDue <= 0 ? 'Fully Paid' : 'Unpaid';
+                    b.linkedPaymentsCount = (b.linkedPaymentsCount || 0) + 1;
+                }
+                return b;
+            });
+
+            saveBookingsToCloud();
+            closePaymentModal();
+            alert('Payment collected successfully!');
+        }
+
+        function setFilterCategory(cat) {
+            currentFilterCategory = cat;
+            
+            ['upcoming', 'done', 'all'].forEach(c => {
+                const btn = document.getElementById(`btn-filter-${c}`);
+                if (c === cat) {
+                    btn.className = "flex-1 md:flex-none px-4 py-2 rounded-xl bg-white text-emerald-800 shadow font-black transition";
+                } else {
+                    btn.className = "flex-1 md:flex-none px-4 py-2 rounded-xl text-slate-500 hover:text-slate-900 transition font-bold";
+                }
+            });
+
+            renderBookingsTable();
+        }
+
+        function renderBookingsTable() {
+            const container = document.getElementById('bookingsCardsContainer');
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            container.innerHTML = '';
+
+            const filtered = bookings.filter(b => {
+                const matchesSearch = b.name.toLowerCase().includes(query) || b.phone.includes(query);
+                if (!matchesSearch) return false;
+
+                const past = isBookingPast(b);
+
+                if (currentFilterCategory === 'upcoming') {
+                    return !past;
+                } else if (currentFilterCategory === 'done') {
+                    return past;
+                }
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="col-span-2 p-10 text-center text-slate-400 font-semibold">No bookings found under ${currentFilterCategory}.</div>`;
+                return;
+            }
+
+            filtered.forEach(b => {
+                const totalPaid = (b.cashPaid || 0) + (b.onlinePaid || 0) + (b.advancePaid || 0);
+                const formattedDateStr = new Date(b.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+                const startH = parseTimeToFloat(b.startTime);
+                const totalH = (parseFloat(b.dayHours)||0) + (parseFloat(b.nightHours)||0) || parseFloat(b.hours) || 1;
+                const endH = startH + totalH;
+                const timeRange = `${formatHourLabel(startH)} – ${formatHourLabel(endH)}`;
+
+                container.innerHTML += `
+                    <div class="glass-card p-5 rounded-3xl shadow-sm space-y-3 border-l-4 ${b.balanceDue <= 0 ? 'border-emerald-500':'border-amber-500'}">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="font-extrabold text-base text-slate-900">${b.name}</h3>
+                                <p class="text-xs text-slate-400 font-semibold"><i class="fa-solid fa-phone text-[10px]"></i> ${b.phone}</p>
+                            </div>
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black ${b.balanceDue <= 0 ? 'bg-emerald-100 text-emerald-800':'bg-red-100 text-red-700'}">
+                                ${b.balanceDue <= 0 ? 'Fully Paid' : 'Unpaid'}
+                            </span>
+                        </div>
+
+                        <div class="text-xs text-slate-600 space-y-1">
+                            <div class="flex items-center gap-1.5 font-semibold text-slate-500"><i class="fa-regular fa-calendar"></i> ${formattedDateStr}</div>
+                            <div class="flex justify-between items-center bg-slate-50 p-2.5 rounded-2xl border border-slate-200/80 mt-1">
+                                <span class="font-black text-emerald-800">${timeRange} (${totalH}h)</span>
+                                <span class="font-black text-sm text-slate-900">₹${b.grandTotal.toLocaleString('en-IN')}</span>
+                            </div>
+                        </div>
+
+                        <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 text-xs space-y-1 font-semibold">
+                            <div class="flex justify-between text-[11px] text-slate-500"><span>Split Light:</span> <span>${b.dayHours||0}h Day + ${b.nightHours||0}h Night</span></div>
+                            <div class="flex justify-between text-blue-600 font-bold"><span>Drinks Total:</span> <span>₹${(b.drinksTotal || 0).toLocaleString('en-IN')}.00</span></div>
+                            <div class="flex justify-between text-amber-600 font-bold"><span>Discount Applied:</span> <span>-₹${(b.discountAmt || 0).toLocaleString('en-IN')}.00</span></div>
+                            <div class="flex justify-between font-black text-slate-800"><span>Grand Total:</span> <span>₹${b.grandTotal.toLocaleString('en-IN')}.00</span></div>
+                            <div class="flex justify-between text-emerald-600 font-bold"><span>Total Paid:</span> <span>₹${totalPaid.toLocaleString('en-IN')}.00</span></div>
+                            <div class="flex justify-between text-red-500 font-black border-t border-slate-200 pt-1"><span>Remaining Due:</span> <span>₹${b.balanceDue.toLocaleString('en-IN')}.00</span></div>
+                        </div>
+
+                        <button onclick="openPaymentModal(${b.id})" class="w-full bg-emerald-700 hover:bg-emerald-600 text-white font-black py-2.5 rounded-2xl transition flex items-center justify-center gap-2 text-xs shadow-md">
+                            <i class="fa-solid fa-wallet"></i> Collect Payment & Add Drinks
+                        </button>
+
+                        <div class="text-[10px] text-slate-400 text-center font-bold">
+                            Linked Payments: ${b.linkedPaymentsCount || 0}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // --- ACADEMY & INVENTORY ---
+        document.getElementById('academyForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('acadName').value.trim();
+            const phone = document.getElementById('acadPhone').value.trim();
+            const fee = parseFloat(document.getElementById('acadFee').value) || 0;
+            academyStudents.unshift({ id: Date.now(), name, phone, fee, drinkDues: 0, paidCash: 0, paidOnline: 0, paid: 0, balance: fee });
+            saveAcademyToCloud();
+            this.reset();
+        });
+
+        function renderAcademyTable() {
+            const tbody = document.getElementById('academyTableBody');
+            const query = document.getElementById('acadSearch').value.toLowerCase();
+            tbody.innerHTML = '';
+            academyStudents.filter(s => s.name.toLowerCase().includes(query)).forEach(s => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="p-3"><div class="font-bold text-slate-800">${s.name}</div><div class="text-[10px] text-slate-400">${s.phone}</div></td>
+                        <td class="p-3 font-semibold text-slate-700">₹${s.fee}</td>
+                        <td class="p-3 text-emerald-600 font-bold">₹${s.paid}</td>
+                        <td class="p-3 font-extrabold text-red-500">₹${s.balance}</td>
+                        <td class="p-3 text-center"><button onclick="academyStudents=academyStudents.filter(x=>x.id!==${s.id});saveAcademyToCloud();" class="text-slate-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></td>
+                    </tr>
+                `;
+            });
+        }
+
+        document.getElementById('inventoryForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('invItemName').value.trim();
+            const price = parseFloat(document.getElementById('invItemPrice').value) || 0;
+            const stock = parseInt(document.getElementById('invItemStock').value) || 0;
+            inventory.push({ id: Date.now(), name, price, stock });
+            saveInventoryToCloud();
+            this.reset();
+        });
+
+        function renderInventoryTable() {
+            const tbody = document.getElementById('inventoryTableBody');
+            tbody.innerHTML = '';
+            inventory.forEach(item => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="p-3 font-semibold text-slate-800">${item.name}</td>
+                        <td class="p-3 font-semibold text-slate-700">₹${item.price}</td>
+                        <td class="p-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${item.stock<=5?'bg-red-100 text-red-700':'bg-emerald-100 text-emerald-700'}">${item.stock} left</span></td>
+                        <td class="p-3 space-x-1">
+                            <button onclick="item.stock+=1;saveInventoryToCloud();" class="px-2 py-0.5 bg-slate-200 hover:bg-slate-300 rounded-lg font-bold">+1</button>
+                            <button onclick="item.stock=Math.max(0,item.stock-1);saveInventoryToCloud();" class="px-2 py-0.5 bg-slate-200 hover:bg-slate-300 rounded-lg font-bold">-1</button>
+                        </td>
+                        <td class="p-3 text-center"><button onclick="inventory=inventory.filter(x=>x.id!==${item.id});saveInventoryToCloud();" class="text-slate-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></td>
+                    </tr>
+                `;
+            });
+        }
+    </script>
+</body>
+</html>
